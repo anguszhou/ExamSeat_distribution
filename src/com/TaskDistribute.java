@@ -57,11 +57,13 @@ public class TaskDistribute extends SwingWorker<List<Student>, Student>{
 				String sc = rowValues[0].toString().trim();
 				String js = rowValues[1].toString().trim();
 				Double num = Double.valueOf(rowValues[2].toString().trim());
+				String bz = rowValues[4].toString().trim();
 				
 				Place pp = new Place();
 				pp.SC = sc;
 				pp.JS = js;
 				pp.RS = num;
+				pp.BZ = bz;
 				pList.add(pp);
 				
 				int temp = index;

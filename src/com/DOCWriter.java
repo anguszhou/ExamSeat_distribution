@@ -1,5 +1,6 @@
 package com;
 
+import java.io.File;
 import java.util.ArrayList;    
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -384,6 +385,17 @@ public class DOCWriter {
         Dispatch.call(fstCell, "Merge", secCell);    
     }    
    
+    public void mergeCell2(Dispatch table, int fstCellRowIdx, int fstCellColIdx, int secCellRowIdx, int secCellColIdx){    
+    	   
+        logger.debug("合并单元格...");    
+        if(this.table == null){    
+            logger.warn("table对象为空...");    
+            return;    
+        }    
+        Dispatch fstCell = Dispatch.call(table, "Cell",new Variant(fstCellRowIdx), new Variant(fstCellColIdx)).toDispatch();    
+        Dispatch secCell = Dispatch.call(table, "Cell",new Variant(secCellRowIdx), new Variant(secCellColIdx)).toDispatch();    
+        Dispatch.call(fstCell, "Merge", secCell);    
+    } 
     /**   
      * 想Table对象中插入数值
      *    
@@ -451,6 +463,38 @@ public class DOCWriter {
    
          //this.moveRight(1);    
     }
+    
+    public void insertToTable2(String[] imgPaths , int row){    
+        logger.debug("向Table对象中插入数据...");    
+        if(imgPaths == null || imgPaths.length <= 0){    
+            logger.warn("写出数据集为空...");    
+            return;    
+        }    
+        if(this.table == null){    
+            logger.warn("table对象为空...");    
+            return;    
+        }    
+        
+        for(int j = 0; j<imgPaths.length; j++){    
+            /* 遍历表格中每一个单元格，遍历次数与所要填入的内容数量相同 */  
+       	 if(imgPaths[j] == null || imgPaths[j].length() <= 0)
+       		 continue;
+            Dispatch cell = this.getCell(row+1, j+1);    
+            /* 选中此单元格 */   
+            Dispatch.call(cell, "Select"); 
+            Dispatch.call(selection, "MoveLeft");
+            
+            Dispatch pic = Dispatch.call(Dispatch.get(this.selection,"InLineShapes").toDispatch(),"AddPicture",imgPaths[j]).toDispatch();
+            Dispatch.call(pic, "Select");
+            Dispatch.put(pic, "Width", new Variant(90)); // 图片的宽度
+            Dispatch.put(pic, "Height", new Variant(120)); // 图片的高度
+            //Dispatch.call(selection, "MoveRight");
+            
+             
+        }    
+  
+        //this.moveRight(1);    
+   }
     /**   
      * 想Table对象中插入数值<p>   
      *     参数形式：ArrayList<String[]>List.size()为表格的总行数<br>   
@@ -979,209 +1023,116 @@ public class DOCWriter {
         
         writer.createNewDocument(); 
         writer.saveAs("E://TestDocBenjamin.doc"); 
-        writer.setPageSetup(1, 5, 5, 5, 5);
+        writer.setPageSetup(1, 50, 60, 20, 20);
         writer.setAlignment(1);
         writer.setVisible(true); 
         
-        String str = "陕西省硕士生考试统考试题使用申报表";
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 20);  
-        writer.insertToDocument(str);
-        
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 15);  
-        str = "考点：考试代码  考点名称(盖章)           负责人:              统计人:  ";
-        writer.insertToDocument(str);
-        
-        Map<Integer , Integer[]> calcu = new LinkedHashMap<Integer , Integer[]>();
-        Map<Integer, String>examCode = new LinkedHashMap<Integer, String>();
-        examCode.put(101, "思想政治理论");
-        examCode.put(199, "管理类联考综合能力");
-        
-        examCode.put(201, "英语一");
-        examCode.put(202, "俄语");
-        examCode.put(203, "日语");
-        examCode.put(204, "英语二");
-        
-        examCode.put(301, "数学一");
-        examCode.put(302, "数学二");
-        examCode.put(303, "数学三");
-        examCode.put(306, "西医综合");
-        examCode.put(307, "中医综合");
-        examCode.put(311, "教育学专业基础综合");
-        examCode.put(312, "心理学专业基础综合");
-        examCode.put(313, "历史学专业基础");
-        
-        examCode.put(408, "计算机学科专业基础综合");
-        examCode.put(397, "法硕联考专业基础(法学)");
-        examCode.put(398, "法硕联考专业基础(非法学)");
-        examCode.put(497, "法硕联考综合(法学)");
-        examCode.put(498, "法硕联考综合(非法学)");
-        examCode.put(314, "数学(农)");
-        examCode.put(315, "化学(农)");
-        examCode.put(414, "植物生理学与生物化学");
-        examCode.put(415, "动物生理学与生物化学");
-        
-        Random rd = new Random();
-        int num = 30;
-        List<String[]> listTab = new ArrayList<String[]>();
-        String[] list = new String[num+1];
-        list[0] = "科目\\需用袋数\\份数";
-        for (int i = 1; i < num+1; i++) {
-			list[i] = String.valueOf(i);
-		}
-        listTab.add(list);
-        for(Entry<Integer, String> code : examCode.entrySet()){
-        	list = new String[num+1];
-        	list[0] = code.getValue()+"("+code.getKey()+")";
-        	 for (int i = 1; i < num+1; i++) {
-     			list[i] = String.valueOf(rd.nextInt(60));
-     		}
-        	 listTab.add(list);
+        String imgpath = "C:\\Users\\zhoucong\\Desktop\\2014准确数据aaaaaaaa\\2013工作人员";
+        File dir = new File(imgpath+File.separator+"tmpImg");
+        System.out.println(dir.exists()+":"+dir.isDirectory()+":");
+        if(!dir.isDirectory()){
+        	dir.mkdir();
         }
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 10); 
-        writer.createNewTable(examCode.size()+1, num+8, 1);
-        for (int i = 0; i < examCode.size()+1; i++) {
-			writer.mergeCell(0, i+1, 1, i+1, 8);
+        
+        String title = "西安交大2014年硕士生入学考试";
+        List<Teacher> teaList = new ArrayList<Teacher>();
+        for (int i = 0; i < 10; i++) {
+			Teacher tt = new Teacher();
+			tt.KH = "编号：61110000"+i;
+			tt.ZW = "东区巡视";
+			tt.ZP = "12"+i+".jpg";
+			tt.DW = "工作单位：材料学院党委";
+			tt.XM = "姓名：严红昌"+i;
+			tt.SC = "试场：东区 65- 69试场";
+			tt.DD = "地点：中心三楼二层";
+			teaList.add(tt);
 		}
-        //writer.mergeCell(0, 1, 1, 1, 3);
-        for (int i = 0; i < examCode.size()+1; i++) {
-        	writer.insertRowToTable(listTab.get(i), i);
-		}
-        //writer.insertToTable(listTab);
         
-        /*
-        List<String> list = new ArrayList<String>(); 
-        String str = "照片对照表";
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 20);  
-        writer.insertToDocument(str);
-        
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 10);  
-        str = "第1考场        第一单元     地点：沙发上了飞机阿拉斯加看到发牢骚";
-        writer.insertToDocument(str);
-        
-        	 writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 8); 
-             writer.createNewTable(15, 10, 0);
-             
-             for(int m = 0 ; m<3 ; m++){
-            	 String[] imgs = new String[10];
-                 for (int i = 0; i < imgs.length; i++) {
-         			imgs[i] = "E:\\"+i+".jpg";
-         			//writer.insertImage("E:\\a.jpg");
-         			
-         		}
-                 writer.insertToTable(imgs, m*5);
-                 
-                 String str1[] = new String[10];  
-                 for (int i = 0; i < 10; i++) {
-    				str1[i] = "123456789";
-    			 }
-                 writer.insertRowToTable(str1, m*5+1);   
-                 for (int i = 0; i < 10; i++) {
-     				str1[i] = "撒旦发生的放地方";
-     			 }
-                 writer.insertRowToTable(str1, m*5+2);
-                  for (int i = 0; i < 10; i++) {
-      				str1[i] = "4566";
-      			 }
-                  writer.insertRowToTable(str1, m*5+3);
-                   for (int i = 0; i < 10; i++) {
-       				str1[i] = "撒旦法斯蒂芬斯蒂芬斯蒂芬";
-       			 }
-                   writer.insertRowToTable(str1, m*5+4);
-             }
-             writer.moveDown(1);
+        writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 15);
+        int rowSize = 16;
+        int colSize = 2;
+        int perSize = 4;
+        int num = 8;
+        int page = (int)Math.ceil((double)teaList.size()/perSize);
+        int index = 0;
+        for (int i = 0; i < page ; i++) {
+        	writer.createNewTable(rowSize, colSize, 1);
+        	
+        	for (int j = 0; j < rowSize/num; j++) {
+        		
+            	String[] id = new String[colSize];
+            	String[] head =new String[colSize];
+            	String[] zw = new String[colSize];
+            	String[] imgs = new String[colSize];
+            	String[] dw = new String[colSize];
+            	String[] xm = new String[colSize];
+            	String[] sc = new String[colSize];
+            	String[] dd = new String[colSize];
+        		
+				for (int k = 0; k < colSize && index < teaList.size(); k++) {
+					 Teacher tmp = teaList.get(index);
+					 index++;
+					 id[k] = tmp.KH;
+					 head[k] = title;
+					 zw[k] = tmp.ZW;
+					 
+					 File file = new File(imgpath+File.separator+tmp.ZP);
+					 if(file.exists()){
+						 imgs[k] = imgpath+File.separator+tmp.ZP;
+					 }else{
+						 createJPG.create(90, 120, dir.getAbsolutePath()+File.separator+tmp.ZP);
+						 imgs[k] = dir.getAbsolutePath()+File.separator+tmp.ZP;
+					 }
+					 
+					 dw[k] = tmp.DW;
+					 xm[k] = tmp.XM;
+					 sc[k] = tmp.SC;
+					 dd[k] = tmp.DD;
+				}
+				
+				
+            	writer.insertRowToTable(id, j*num);
+            	writer.insertRowToTable(head, j*num+1);
+            	writer.insertRowToTable(zw, j*num+2);
+            	writer.insertToTable2(imgs, j*num+3);
+            	writer.setAlignment(0);
+            	writer.insertRowToTable(dw, j*num+4);
+            	writer.setAlignment(1);
+            	writer.insertRowToTable(xm, j*num+5);
+            	writer.insertRowToTable(sc, j*num+6);
+            	writer.insertRowToTable(dd, j*num+7);
+			}
+        	
+        	//writer.mergeCell(0,1,1,8,1);
+        	//writer.mergeCell(0,1,2,8,2);
+        	//writer.mergeCell(0,2,1,9,1);
+        	//writer.mergeCell(0,2,2,9,2);
+        	 writer.moveDown(1);
              writer.enterDown(1);
-             writer.nextPage();
-             
-             String str2 = "照片对照表";
-             writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 20);  
-             writer.insertToDocument(str2);
-             
-             writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 10);  
-             str2 = "第1考场        第一单元     地点：沙发上了飞机阿拉斯加看到发牢骚";
-             writer.insertToDocument(str2);
-             
-             	 writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 8); 
-                  writer.createNewTable(15, 10, 0);
-                  
-                  for(int m = 0 ; m<3 ; m++){
-                 	 String[] imgs = new String[10];
-                      for (int i = 0; i < imgs.length; i++) {
-              			imgs[i] = "E:\\"+i+".jpg";
-              			//writer.insertImage("E:\\a.jpg");
-              			
-              		}
-                      writer.insertToTable(imgs, m*5);
-                      
-                      String str1[] = new String[10];  
-                      for (int i = 0; i < 10; i++) {
-         				str1[i] = "123456789";
-         			 }
-                      writer.insertRowToTable(str1, m*5+1);   
-                      for (int i = 0; i < 10; i++) {
-          				str1[i] = "撒旦发生的放地方";
-          			 }
-                      writer.insertRowToTable(str1, m*5+2);
-                       for (int i = 0; i < 10; i++) {
-           				str1[i] = "4566";
-           			 }
-                       writer.insertRowToTable(str1, m*5+3);
-                        for (int i = 0; i < 10; i++) {
-            				str1[i] = "撒旦法斯蒂芬斯蒂芬斯蒂芬";
-            			 }
-                        writer.insertRowToTable(str1, m*5+4);
-                  }
-                  */
-            
-        /*
-        List<String[]> listTable = new ArrayList<String[]>();    
-        for(int i = 0 ; i<3; i++){    
-            String str1[] = new String[8];    
-            str1[0] = "106984611101917"; 
-            str1[1] = "士大夫" ;
-            str1[2] = "106984611101917" ; 
-            str1[3] = "士大夫" ;
-            str1[4] = "106984611101917" ; 
-            str1[5] = "士大夫" ;
-            str1[6] = "106984611101917" ; 
-            str1[7] = "士大夫" ;
-            listTable.add(str1);    
-        }    
-        
-        String str2[] = new String[8];    
-        str2[0] = "106984611101917" ; 
-        str2[1] = "士大" ;
-        str2[2] = "106984611101917" ; 
-        str2[3] = "士大撒旦发生的" ;
-        str2[4] = "106984611101917" ; 
-        str2[5] = "士大夫" ;
-        str2[6] = "106984611101917" ; 
-        str2[7] = "士大夫斯蒂芬斯蒂" ;
-        listTable.add(str2);
-        
-        String str1[] = new String[8];    
-        str1[0] = "106984611101917" ; 
-        str1[1] = "士大夫受到法" ;
-        str1[2] = "106984611101917" ; 
-        str1[3] = "士大夫" ;
-        str1[4] ="106984611101917"; 
-        str1[5] = "士大夫" ;
-        str1[6] = "106984611101917"; 
-        str1[7] = "士大夫" ;
-        listTable.add(str1);
-        
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 18);  
-        writer.createNewTable(5, 8, 0);    
-        writer.insertToTable(listTable); 
-        
-        
-        writer.nextPage();
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 20);  
-        str = "第2考场           人数：30     地点：沙发上了飞机阿拉斯加看到发牢骚";
-        writer.insertToDocument(str);
-        */
+             writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 12);
+             String marks = "1.核对照片(本人、准考证)2.考生签字(缺考由监考老师在签字处注'缺考')" +
+ 			"3.监考人员在右下角签字4.本表与考场记录一并交回。";
+             writer.insertToDocument(marks);
+        	 writer.nextPage();  
+		}
         writer.save();
-        
-//      writer.close();    
+        System.out.println(writer.getTablesCount());
+        for (int i = 0; i < writer.getTablesCount(); i++) {
+			Dispatch table = writer.getTable(i+1);
+			
+			Dispatch cell = Dispatch.call(table, "Cell", new Variant(6),new Variant(1)).toDispatch();
+			Dispatch.call(cell, "Select");   
+			Dispatch.put(writer.getFont(), "Size", 15);  
+			Dispatch.put(writer.getAlignment(), "Alignment", 0);
+			
+			writer.mergeCell2(table,1,1,8,1);
+        	writer.mergeCell2(table,1,2,8,2);
+        	writer.mergeCell2(table,2,1,9,1);
+        	writer.mergeCell2(table,2,2,9,2);
+		}
+        writer.save();
+        writer.quit();
+        DeleteFile.deleteDirectory(dir.getAbsolutePath());
     }    
    
 }  

@@ -16,9 +16,11 @@ public class TaskCalPaperdoc extends SwingWorker<List<Student>, Student>{
 	private int size = 0;
 	private DefaultProgressHandle progressHandle = null;
 	private String outputPath;
+	private int year;
 	
-	public TaskCalPaperdoc(String outputPath){
+	public TaskCalPaperdoc(String outputPath , int year){
 		this.outputPath= outputPath;
+		this.year = year;
 	}
 
 	public void setProgressHandle(DefaultProgressHandle progressHandle) {
@@ -60,7 +62,7 @@ public class TaskCalPaperdoc extends SwingWorker<List<Student>, Student>{
         examCode.put(414, "植物生理学与生物化学");
         examCode.put(415, "动物生理学与生物化学");
         
-        final int num = 30;
+        final int num = 60;
         int codeSize = examCode.size();
         Map<Integer, Integer>numPerClass = new LinkedHashMap<Integer, Integer>();
         Map<Integer , Integer[]> calcul = new LinkedHashMap<Integer , Integer[]>();
@@ -74,8 +76,9 @@ public class TaskCalPaperdoc extends SwingWorker<List<Student>, Student>{
         }
         
         int index = 0;
+        //循环每个人数非零的试场
         for (int i = 0; i < pSize &&  progressHandle.pList.get(i).RS > 0; i++) {
-        	
+        	//当前试场每个科目的人数初始化为0
         	for(Entry<Integer, String> entity : examCode.entrySet()){
             	numPerClass.put(entity.getKey(), 0);
             }
@@ -139,53 +142,65 @@ public class TaskCalPaperdoc extends SwingWorker<List<Student>, Student>{
         
         DOCWriter writer = new DOCWriter(); 
         writer.createNewDocument();    
-        writer.setPageSetup(1, 5, 5, 5, 5);
+        writer.setPageSetup(1, 20, 30, 10, 10);
         writer.setAlignment(1);
+        int perPageSize = 30; //每页统计的份数大小
         //writer.setVisible(true); 
-        
-        String str = "陕西省硕士生考试统考试题使用申报表";
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 20);  
-        writer.insertToDocument(str);
-        
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 15);  
-        str = "考点：考试代码  考点名称(盖章)              负责人:              统计人:  ";
-        writer.insertToDocument(str);
-
-        List<String[]> listTab = new ArrayList<String[]>();
-        String[] list = new String[num+1];
-        list[0] = "科目\\需用袋数\\份数";
-        for (int i = 1; i < num+1; i++) {
-			list[i] = String.valueOf(i);
-		}
-        listTab.add(list);
-        
-        for(Entry<Integer, String> code : examCode.entrySet()){
-        	list = new String[num+1];
-        	list[0] = code.getValue()+"("+code.getKey()+")";
-        	 for (int i = 1; i < num+1; i++) {
-        		int value = calcul.get(code.getKey())[i];
-        		if(value > 0){
-        			list[i] = String.valueOf(value);
-        		}
-     		}
-        	 listTab.add(list);
-        }
-        writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 10); 
-        writer.createNewTable(codeSize+1, num+8, 1);
-        for (int i = 0; i < examCode.size()+1; i++) {
-			writer.mergeCell(0, i+1, 1, i+1, 8);
-		}
         if(size == 0){
-			size = codeSize+1;
+			size = (codeSize+1)*num/perPageSize;
 		}
-        for (int i = 0; i < codeSize+1; i++) {
-        	writer.insertRowToTable(listTab.get(i), i);
-        	lineCnt++;
-        	publish(new Student());
+        
+        for (int i = 0; i < num/perPageSize; i++) {
+        	 String str = year+"年陕西省硕士生考试统考试题使用申报表";
+             writer.setFontScale("宋体", true, false,false, "0,0,0,0", 100, 20);  
+             writer.insertToDocument(str);
+             
+             writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 15);  
+             str = "考点：考试代码             考点名称(盖章)              负责人:              统计人:  ";
+             writer.insertToDocument(str);
+             
+             List<String[]> listTab = new ArrayList<String[]>();
+             String[] list = new String[perPageSize+1];
+             list[0] = "科目\\需用袋数\\份数";
+             for (int j = 1; j < perPageSize+1; j++) {
+     			list[j] = String.valueOf(j+perPageSize*i);
+     		}
+             listTab.add(list);
+             System.out.println(i+":1");
+             for(Entry<Integer, String> code : examCode.entrySet()){
+             	list = new String[perPageSize+1];
+             	list[0] = code.getValue()+"("+code.getKey()+")";
+             	for (int j = 1; j < perPageSize+1; j++) {
+             		int value = calcul.get(code.getKey())[i*perPageSize + j];
+             		if(value > 0){
+             			list[j] = String.valueOf(value);
+             			
+             		}
+          		}
+             	listTab.add(list);
+             }
+             writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 10); 
+             writer.createNewTable(codeSize+1, perPageSize+8, 1);
+             for (int j = 0; j < examCode.size()+1; j++) {
+     			writer.mergeCell(0, j+1, 1, j+1, 8);
+     		 }
+            
+             for (int j = 0; j < codeSize+1; j++) {
+             	writer.insertRowToTable(listTab.get(j), j);
+             	lineCnt++;
+             	publish(new Student());
+     		}
+            if( (i+1) < num/perPageSize){
+          		writer.moveDown(1);
+          		writer.enterDown(1);
+          		writer.nextPage();
+          	}
 		}
+        
+       
         
         StringBuffer filename = new StringBuffer();
-        filename.append(this.outputPath).append(File.separator).append("EaxmPaperCalca.doc");
+        filename.append(this.outputPath).append(File.separator).append(year).append("年试题使用申报表.doc");
         System.out.println(filename.toString());
         writer.saveAs(filename.toString());
         writer.close();

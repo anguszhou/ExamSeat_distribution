@@ -7,6 +7,7 @@ import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
+import com.jacob.com.Dispatch;
 import com.jacob.com.Variant;
 
 public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
@@ -21,12 +22,16 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
 	private String outputPath;
 	private String prefix;
 	private String suffix;
+	private String marks;
+	private int year;
 	
-	public TaskImgdoc(String prefix,String suffix,String outputPath, int docIndex){
+	public TaskImgdoc(String prefix,String suffix,String outputPath, int docIndex,String marks,int year){
 		this.outputPath = outputPath;
 		this.prefix = prefix;
 		this.suffix = suffix;
 		this.docIndex = docIndex;
+		this.marks = marks;
+		this.year = year;
 	}
 
 	public void setProgressHandle(DefaultProgressHandle progressHandle) {
@@ -41,7 +46,7 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
         int index = 0;
         System.out.println("place size: "+pSize);
         if(size == 0){
-			size = ExamSeat.getNotZeroClass(progressHandle.pList);
+			size = ExamSeat.getNotZeroClass(progressHandle.pList)*2;
 		}
         
         for (int i = 0; i < docIndex * docSize; i++) {
@@ -53,42 +58,40 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
     	int m = this.docIndex;
     	DOCWriter writer = new DOCWriter(); 
         writer.createNewDocument();  
+        int hasBord = 0;
         
         StringBuffer filename = new StringBuffer();
-        filename.append(this.outputPath).append(File.separator).append("ImgDoc(").append(docIndex+1).append(").doc");
+        filename.append(this.outputPath).append(File.separator).append(year).append("年考生图像对照表(").append(docIndex+1).append(").doc");
         writer.saveAs(filename.toString());
         
-        writer.setPageSetup(1, 5, 5, 5, 5);
+        writer.setPageSetup(1, 20, 25, 30, 20);
         writer.setAlignment(1);
         //writer.setVisible(true);
+        
+        int stuInfo = 4;
         
         for(int i=m*docSize ; i< (m+1)*docSize && i<pSize && progressHandle.pList.get(i).RS > 0; i++){
         	Place pp = progressHandle.pList.get(i);
         	int temp = index;
         	//试场 pp ： 第一单元考试对照表
-        	String str = "照片对照表";
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 20);  
-            writer.insertToDocument(str);
-        	
             StringBuffer sb = new StringBuffer();
-            sb.append(pp.SC).append("  :  ").append(pp.JS).append("    第一单元");
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 10);
+            sb.append(pp.SC).append("  地点:").append(pp.JS).append("    第一单元");
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 20);
             writer.insertToDocument(sb.toString());
             
             int cols = columnSize;
             int rows = (int)Math.ceil((double)pp.RS/columnSize);
             
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 8);
-            writer.createNewTable(rows*5, cols, 0);
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 8);
+            writer.createNewTable(rows*stuInfo, cols, hasBord);
             
-        	//循环的行数： table总行数/5 , 每个学生包含5列信息（照片，考生编号，姓名，考试代码，考试科目）
+        	//循环的行数： table总行数/stuInfo , 每个学生包含5列信息（照片，考生编号，姓名，考试代码，考试科目）
             for(int j=0 ; j<rows ; j++){
             	
             	String[] imgs = new String[columnSize];
             	String[] id = new String[columnSize];
             	String[] name = new String[columnSize];
             	String[] code = new String[columnSize];
-            	String[] exam = new String[columnSize];
             	
             	//循环的列数，每类打印10个考生信息
             	for (int k = 0; k < cols && index < temp+pp.RS; k++) {
@@ -105,35 +108,32 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
                 		}
                 		id[k] = ss.KSBH;
                 		name[k] = ss.XM;
-                		code[k] = ss.ZZLLM;
-                		exam[k] = ss.ZZLLMC;
+                		code[k] = ss.ZZLLM+ss.ZZLLMC;
             		}catch(NumberFormatException e){
+            			k--;
             			//System.out.println("第一单元：教室:"+(i+1)+":"+(index+1)+"，考生："+ss.XM+",没有考试");
             		}
             		index++;
 				}
-            	writer.insertToTable(imgs, j*5);
-            	writer.insertRowToTable(id, j*5+1);
-            	writer.insertRowToTable(name, j*5+2);
-            	writer.insertRowToTable(code, j*5+3);
-            	writer.insertRowToTable(exam, j*5+4);
+            	writer.insertToTable(imgs, j*stuInfo);
+            	writer.insertRowToTable(id, j*stuInfo+1);
+            	writer.insertRowToTable(name, j*stuInfo+2);
+            	writer.insertRowToTable(code, j*stuInfo+3);
             }
             writer.moveDown(1);
             writer.enterDown(1);
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 12);
+            writer.insertToDocument(marks);
             writer.nextPage();
             
           //试场 pp ： 第二单元考试对照表
             index = temp;
-            String str2 = "照片对照表";
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 20);  
-            writer.insertToDocument(str2);
-        	
             StringBuffer sb2 = new StringBuffer();
-            sb2.append(pp.SC).append("  :  ").append(pp.JS).append("    第二单元");
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 10);
+            sb2.append(pp.SC).append("  地点:").append(pp.JS).append("    第二单元");
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 20);
             writer.insertToDocument(sb2.toString());
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 8);
-            writer.createNewTable(rows*5, cols, 0);
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 8);
+            writer.createNewTable(rows*stuInfo, cols, hasBord);
             
         	//循环的行数： table总行数/5 , 每个学生包含5列信息（照片，考生编号，姓名，考试代码，考试科目）
             for(int j=0 ; j<rows ; j++){
@@ -142,7 +142,6 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
             	String[] id = new String[columnSize];
             	String[] name = new String[columnSize];
             	String[] code = new String[columnSize];
-            	String[] exam = new String[columnSize];
             	
             	//循环的列数，每类打印10个考生信息
             	for (int k = 0; k < cols && index < temp+pp.RS; k++) {
@@ -159,35 +158,32 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
                 		}
                 		id[k] = ss.KSBH;
                 		name[k] = ss.XM;
-                		code[k] = ss.WGYM;
-                		exam[k] = ss.WGYMC;
+                		code[k] = ss.WGYM+ss.WGYMC;
             		}catch(NumberFormatException e){
+            			k--;
             			//System.out.println("第二单元：教室:"+(i+1)+":"+(index+1)+"，考生："+ss.XM+",没有考试");
             		}
             		index++;
 				}
-            	writer.insertToTable(imgs, j*5);
-            	writer.insertRowToTable(id, j*5+1);
-            	writer.insertRowToTable(name, j*5+2);
-            	writer.insertRowToTable(code, j*5+3);
-            	writer.insertRowToTable(exam, j*5+4);
+            	writer.insertToTable(imgs, j*stuInfo);
+            	writer.insertRowToTable(id, j*stuInfo+1);
+            	writer.insertRowToTable(name, j*stuInfo+2);
+            	writer.insertRowToTable(code, j*stuInfo+3);
             }
             writer.moveDown(1);
             writer.enterDown(1);
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 12);
+            writer.insertToDocument(marks);
             writer.nextPage();
             
           //试场 pp ： 第三单元考试对照表
             index = temp;
-            String str3 = "照片对照表";
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 20);  
-            writer.insertToDocument(str3);
-        	
             StringBuffer sb3 = new StringBuffer();
-            sb3.append(pp.SC).append("  :  ").append(pp.JS).append("    第三单元");
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 10);
+            sb3.append(pp.SC).append("  地点:").append(pp.JS).append("    第三单元");
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 20);
             writer.insertToDocument(sb3.toString());
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 8);
-            writer.createNewTable(rows*5, cols, 0);
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 8);
+            writer.createNewTable(rows*stuInfo, cols, hasBord);
             
         	//循环的行数： table总行数/5 , 每个学生包含5列信息（照片，考生编号，姓名，考试代码，考试科目）
             for(int j=0 ; j<rows ; j++){
@@ -196,7 +192,6 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
             	String[] id = new String[columnSize];
             	String[] name = new String[columnSize];
             	String[] code = new String[columnSize];
-            	String[] exam = new String[columnSize];
             	
             	//循环的列数，每类打印10个考生信息
             	for (int k = 0; k < cols && index < temp+pp.RS; k++) {
@@ -213,35 +208,32 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
                 		}
                 		id[k] = ss.KSBH;
                 		name[k] = ss.XM;
-                		code[k] = ss.YWK1M;
-                		exam[k] = ss.YWK1MC;
+                		code[k] = ss.YWK1M+ss.YWK1MC;
             		}catch(NumberFormatException e){
+            			k--;
             			//System.out.println("第三单元：教室:"+(i+1)+":"+(index+1)+"，考生："+ss.XM+",没有考试");
             		}
             		index++;
 				}
-            	writer.insertToTable(imgs, j*5);
-            	writer.insertRowToTable(id, j*5+1);
-            	writer.insertRowToTable(name, j*5+2);
-            	writer.insertRowToTable(code, j*5+3);
-            	writer.insertRowToTable(exam, j*5+4);
+            	writer.insertToTable(imgs, j*stuInfo);
+            	writer.insertRowToTable(id, j*stuInfo+1);
+            	writer.insertRowToTable(name, j*stuInfo+2);
+            	writer.insertRowToTable(code, j*stuInfo+3);
             }
             writer.moveDown(1);
             writer.enterDown(1);
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 12);
+            writer.insertToDocument(marks);
             writer.nextPage();
             
           //试场 pp ： 第四单元考试对照表
             index = temp;
-            String str4 = "照片对照表";
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 20);  
-            writer.insertToDocument(str4);
-        	
             StringBuffer sb4 = new StringBuffer();
-            sb4.append(pp.SC).append("  :  ").append(pp.JS).append("    第四单元");
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 10);
+            sb4.append(pp.SC).append("  地点:").append(pp.JS).append("    第四单元");
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 20);
             writer.insertToDocument(sb4.toString());
-            writer.setFontScale("宋体", false, false,false, "0,0,0,0", 100, 8);
-            writer.createNewTable(rows*5, cols, 0);
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 8);
+            writer.createNewTable(rows*stuInfo, cols, hasBord);
             
         	//循环的行数： table总行数/5 , 每个学生包含5列信息（照片，考生编号，姓名，考试代码，考试科目）
             for(int j=0 ; j<rows ; j++){
@@ -250,7 +242,6 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
             	String[] id = new String[columnSize];
             	String[] name = new String[columnSize];
             	String[] code = new String[columnSize];
-            	String[] exam = new String[columnSize];
             	
             	//循环的列数，每类打印10个考生信息
             	for (int k = 0; k < cols && index < temp+pp.RS; k++) {
@@ -267,27 +258,29 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
                 		}
                 		id[k] = ss.KSBH;
                 		name[k] = ss.XM;
-                		code[k] = ss.YWK2M;
-                		exam[k] = ss.YWK2MC;
+                		code[k] = ss.YWK2M+ss.YWK2MC;
             		}catch(NumberFormatException e){
+            			k--;
             			//System.out.println("第四单元：教室:"+(i+1)+":"+(index+1)+"，考生："+ss.XM+",没有考试");
             		}
             		index++;
 				}
-            	writer.insertToTable(imgs, j*5);
-            	writer.insertRowToTable(id, j*5+1);
-            	writer.insertRowToTable(name, j*5+2);
-            	writer.insertRowToTable(code, j*5+3);
-            	writer.insertRowToTable(exam, j*5+4);
+            	writer.insertToTable(imgs, j*stuInfo);
+            	writer.insertRowToTable(id, j*stuInfo+1);
+            	writer.insertRowToTable(name, j*stuInfo+2);
+            	writer.insertRowToTable(code, j*stuInfo+3);
             }
+            writer.moveDown(1);
+            writer.enterDown(1);
+            writer.setFontScale("黑体", true, false,false, "0,0,0,0", 100, 12);
+            writer.insertToDocument(marks);
             if( i+1 < (m+1)*docSize && i+1 < pSize && progressHandle.pList.get(i+1).RS > 0){
-            	writer.moveDown(1);
-                writer.enterDown(1);
+            	
             	writer.nextPage();
             }
             lineCnt++;
             publish(new Student());
-            if(lineCnt % 5 == 0){
+            if(lineCnt % stuInfo == 0){
             	System.gc();
             }
             writer.save();
@@ -299,6 +292,35 @@ public class TaskImgdoc extends SwingWorker<List<Student>, Student>{
         filename.append(this.outputPath).append(File.separator).append("ImgDoc(").append(docIndex+1).append(").doc");
         writer.saveAs(filename.toString());
         */
+        for (int i = 0; i < writer.getTablesCount(); i++) {
+			Dispatch table = writer.getTable(i+1);
+			Dispatch rows = Dispatch.call(table, "Rows").toDispatch();
+			int rowNum =  Dispatch.get(rows,"Count").getInt();
+			
+			for (int j = 0; j < rowNum/stuInfo; j++) {
+				for (int k = 0; k < columnSize; k++) {
+					Dispatch cell = Dispatch.call(table, "Cell", new Variant(j*stuInfo+3),new Variant(k+1)).toDispatch();
+					Dispatch.call(cell, "Select");   
+					Dispatch.put(writer.getAlignment(), "Alignment", 0);
+				}
+			}
+			
+			/*for (int j = 0; j < rowNum/stuInfo; j++) {
+				for (int k = 0; k < columnSize; k++) {
+					writer.mergeCell2(table,j+1,k+1,j+stuInfo,k+1);
+				}
+				writer.moveDown(1);
+			}*/
+			if(i % 4 ==0 ){
+				publish(new Student());
+			}
+			
+			/*writer.mergeCell2(table,1,1,8,1);
+        	writer.mergeCell2(table,1,2,8,2);
+        	writer.mergeCell2(table,2,1,9,1);
+        	writer.mergeCell2(table,2,2,9,2);*/
+		}
+        
         writer.save();
         writer.close();
         writer.quit();
